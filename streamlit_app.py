@@ -14,16 +14,27 @@ MODEL_OPTIONS = {     # Available models paths
     "XGBoost": "data/predictions/XGBoost.csv",
 }
 
+# Load supplementary metadata
+meta_df = pd.read_csv("data/videos_metadata.csv", dtype=str).fillna("")
+
+# Create a mapping from video_id to username and description
+video_meta = {
+    row["video_id"]: {
+        "username": row["username"],
+        "description": row["description"]
+    }
+    for _, row in meta_df.iterrows()
+}
+
 st.set_page_config(page_title="Video model demo", layout="wide")
 
 # global CSS for video width
-st.markdown(
+st.html(
     f"<style> video {{width:{VID_W}px !important; height:auto;}} </style>",
-    unsafe_allow_html=True,
 )
 
 # Model selector
-st.markdown("### Select model:", unsafe_allow_html=True)
+st.markdown("### Select model:")
 model_choice = st.radio("Select model", list(MODEL_OPTIONS.keys()), label_visibility="collapsed")
 
 # Load metadata and keep rows whose video file exists
@@ -42,7 +53,7 @@ videos_ids = df["video_id"].tolist()
 if "chosen" not in st.session_state:
     st.session_state["chosen"] = {vid: False for vid in videos_ids}
 
-st.markdown("### Select videos:", unsafe_allow_html=True)
+st.markdown("### Select videos:")
 
 # Add buttons to select/deselect all videos
 col1, col2, col_spacer = st.columns([1, 1, 8])
@@ -88,6 +99,17 @@ if st.button("Show model's output", type="primary", use_container_width=True):
                         predicted = df.loc[df.video_id == vid, "predicted_label"].values[0]
                         true = df.loc[df.video_id == vid, "true_label"].values[0]
                         path = df.loc[df.video_id == vid, "file_path"].values[0]
+                        meta = video_meta.get(vid, {"username": "", "description": ""})
+                        username = meta["username"]
+                        description = meta["description"]
+
+                        st.markdown(f"**Username:** {username}", unsafe_allow_html=True)
+                        st.markdown(f"""
+                        <div style="max-height: 4em; min-height:4em; margin-bottom: 20px; overflow-y: auto; 
+                        font-size: 0.85rem; padding: 4px; border: 1px solid #ccc; border-radius: 5px;">
+                        {description}
+                        </div>
+                        """, unsafe_allow_html=True)
                         st.video(path)
                         st.text(
                             f"Model Prediction: {predicted}\n"
@@ -97,6 +119,7 @@ if st.button("Show model's output", type="primary", use_container_width=True):
                     else:
                         st.empty()
         if len(selected) > 1:
+            # Plot the distribution of predictions for the selected videos
             st.subheader("Prediction Distribution")
             fig = plot_prediction_distribution(df, selected)
             st.pyplot(fig, use_container_width=False)
