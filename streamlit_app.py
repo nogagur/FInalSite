@@ -2,11 +2,17 @@ import os
 import pandas as pd
 import streamlit as st
 
+from utils.plot_utils import plot_prediction_distribution
+
 # Config & paths
 DATA_DIR = "data/videos"
-MODEL = "data/predictions/BalancedRF.csv"
 GRID          = 6     # N columns in each grid
 VID_W    = 180        # video width in pixels
+MODEL_OPTIONS = {     # Available models paths
+    "Balanced Random Forest": "data/predictions/BalancedRF.csv",
+    "Logistic Regression": "data/predictions/LogReg.csv",
+    "XGBoost": "data/predictions/XGBoost.csv",
+}
 
 st.set_page_config(page_title="Video model demo", layout="wide")
 
@@ -16,6 +22,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Model selector
+st.markdown("### Select model:", unsafe_allow_html=True)
+model_choice = st.radio("Select model", list(MODEL_OPTIONS.keys()), label_visibility="collapsed")
+
 # Load metadata and keep rows whose video file exists
 @st.cache_data
 def load_model_results(csv_path, video_dir):
@@ -24,14 +34,15 @@ def load_model_results(csv_path, video_dir):
     model_df = model_df[model_df["file_path"].apply(os.path.isfile)].reset_index(drop=True)
     return model_df
 
-df = load_model_results(MODEL, DATA_DIR)
+csv = MODEL_OPTIONS[model_choice]
+df = load_model_results(csv, DATA_DIR)
 videos_ids = df["video_id"].tolist()
 
 # Initialise session selection state for checkboxes
 if "chosen" not in st.session_state:
     st.session_state["chosen"] = {vid: False for vid in videos_ids}
 
-st.title("Select videos to show model's output")
+st.markdown("### Select videos:", unsafe_allow_html=True)
 
 # Add buttons to select/deselect all videos
 col1, col2, col_spacer = st.columns([1, 1, 8])
@@ -60,12 +71,12 @@ for r in rows:
             )
 
 # Grid of chosen videos with their model output
-if st.button("Show model output", type="primary", use_container_width=True):
+if st.button("Show model's output", type="primary", use_container_width=True):
     selected = [vid for vid, flag in st.session_state["chosen"].items() if flag]
     if not selected:
         st.warning("No videos selected.")
     else:
-        st.subheader("Model output")
+        st.subheader("Model's output")
         rows = [selected[i:i+GRID] for i in range(0, len(selected), GRID)]
         for row_ids in rows:
             cols = st.columns(GRID)
@@ -85,3 +96,7 @@ if st.button("Show model output", type="primary", use_container_width=True):
                     # If the slot is empty, just show an empty space (to keep even spacing)
                     else:
                         st.empty()
+        if len(selected) > 1:
+            st.subheader("Prediction Distribution")
+            fig = plot_prediction_distribution(df, selected)
+            st.pyplot(fig, use_container_width=False)
