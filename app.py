@@ -6,7 +6,7 @@ from utils.plot_utils import plot_prediction_distribution
 
 # Config & paths
 DATA_DIR = "data/videos"
-GRID          = 6     # N columns in each grid
+GRID          = 6     # num columns in each grid
 VID_W    = 180        # video width in pixels
 MODEL_OPTIONS = {     # Available models paths
     "Balanced Random Forest": "data/predictions/BalancedRF.csv",
