@@ -99,10 +99,14 @@ if st.button("Show model's output", type="primary", use_container_width=True):
                         predicted = df.loc[df.video_id == vid, "predicted_label"].values[0]
                         true = df.loc[df.video_id == vid, "true_label"].values[0]
                         path = df.loc[df.video_id == vid, "file_path"].values[0]
+                        prob_col = f"prob_{predicted}"
+                        prob = df.loc[df.video_id == vid, prob_col].values[0]
+
                         meta = video_meta.get(vid, {"username": "", "description": ""})
                         username = meta["username"]
                         description = meta["description"]
 
+                        # Display the video's description and uploader username
                         st.markdown(f"**Username:** {username}", unsafe_allow_html=True)
                         st.markdown(f"""
                         <div style="max-height: 4em; min-height:4em; margin-bottom: 20px; overflow-y: auto; 
@@ -111,10 +115,14 @@ if st.button("Show model's output", type="primary", use_container_width=True):
                         </div>
                         """, unsafe_allow_html=True)
                         st.video(path)
-                        st.text(
-                            f"Model Prediction: {predicted}\n"
-                            f"True Label: {true}"
-                        )
+
+                        # Display the model's prediction and true label
+                        color = "green" if predicted == true else "red"
+                        st.markdown(
+                            f"<b style='color:{color};'>Model Prediction: {predicted} (confidence: {float(prob):.2f})</b>"
+                            f"<br>**True Label: {true}**",
+                            unsafe_allow_html=True)
+
                     # If the slot is empty, just show an empty space (to keep even spacing)
                     else:
                         st.empty()
